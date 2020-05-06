@@ -1,0 +1,197 @@
+//
+// Use as you wish for any purpose with or without attribution. 
+//
+using System;
+using System.Collections.Generic;
+
+public class GraphSearch
+{
+	// runs dfs search for a particular value on a test graph; uses anonymous function to allow for custom 'match' criteria
+	public static void Main()
+	{
+		var graph = CreateTestGraph();
+		
+		
+
+		var resultBfs = BfsGraphSearch(graph, 2, val => (val == 6));
+		Console.WriteLine("BFS Search Results:");
+		foreach (var item in resultBfs)
+		{
+			Console.WriteLine(item);
+		}
+	}
+
+
+
+	// performs a BFS graph search from a start index until the positiveMatchFunction returns 'true' for some value
+	public static IList<int> BfsGraphSearch<T>(Graph<T> grph, int startIndex, Func<T, bool> positiveMatchFunction)
+	{
+		var visitedNodes = new Dictionary<int, int>();
+		var searchQueue = new Queue<Tuple<int, int>>();
+		searchQueue.Enqueue(new Tuple<int, int>(startIndex, -1));
+		while (searchQueue.Count > 0)
+		{
+			var currentNode = searchQueue.Dequeue();
+			if (visitedNodes.ContainsKey(currentNode.Item1)) // already searched this one
+				continue;
+			visitedNodes.Add(currentNode.Item1, currentNode.Item2);
+			if (positiveMatchFunction(grph.Vertices[currentNode.Item1])) // this is a match
+			{
+				// found a match - now backtrack
+				var resultStack = new Stack<int>();
+				var lastItem = currentNode.Item2;
+				resultStack.Push(currentNode.Item1);
+				while (lastItem != -1)
+				{
+					resultStack.Push(lastItem);
+					lastItem = visitedNodes[lastItem];
+				}
+
+				return resultStack.ToArray();
+			}
+
+			// keep looking and add everything this touches
+			foreach (var reachableNode in grph.FindAllEdgesFrom(currentNode.Item1))
+			{
+				// add everything i can reach to the search
+				searchQueue.Enqueue(new Tuple<int, int>(reachableNode, currentNode.Item1));
+			}
+		}
+
+		return null;
+	}
+
+	// creates a simple test graph with integer values
+	private static Graph<int> CreateTestGraph()
+	{
+		int[] vertices = new int[]
+		{
+		0, 1, 2, 3, 4, 5, 6, 7
+		}
+
+		;
+		//technically a digraph but all edges are reversed as well, so this is equivalent to a non-directed graph
+		var edges = new TupleList<int, int>()
+		{
+		{
+		0, 1
+		}
+
+		, {
+		0, 2
+		}
+
+		, {
+		0, 3
+		}
+
+		, {
+		1, 4
+		}
+
+		, {
+		4, 5
+		}
+
+		, {
+		5, 6
+		}
+
+		, {
+		3, 7
+		}
+
+		, {
+		1, 7
+		}
+
+		, {
+		1, 0
+		}
+
+		, {
+		2, 0
+		}
+
+		, {
+		3, 0
+		}
+
+		, {
+		4, 1
+		}
+
+		, {
+		5, 4
+		}
+
+		, {
+		6, 5
+		}
+
+		, {
+		7, 3
+		}
+
+		, {
+		7, 1
+		}
+		}
+
+		;
+		return new Graph<int>(vertices, edges);
+	}
+
+	// helper class to hold a graph data structure and find edges
+	public class Graph<T>
+	{
+		public T[] Vertices
+		{
+			get;
+			set;
+		}
+
+		private TupleList<int, int> Edges
+		{
+			get;
+			set;
+		}
+
+		private Dictionary<int, IList<int>> edgeDictionary;
+		public Graph(T[] vertices, TupleList<int, int> edges)
+		{
+			Edges = edges;
+			Vertices = vertices;
+			edgeDictionary = new Dictionary<int, IList<int>>();
+			foreach (var edge in edges)
+			{
+				if (edgeDictionary.ContainsKey(edge.Item1))
+					((List<int>)edgeDictionary[edge.Item1]).Add(edge.Item2);
+				else
+					edgeDictionary[edge.Item1] = new List<int>()
+					{
+					edge.Item2
+					}
+
+					;
+			}
+		}
+
+		public IList<int> FindAllEdgesFrom(int index)
+		{
+			var resultList = new List<int>();
+			foreach (var edge in Edges)
+				if (edge.Item1 == index)
+					resultList.Add(edge.Item2);
+			return resultList;
+		}
+	}
+
+	public class TupleList<T1, T2> : List<Tuple<T1, T2>>
+	{
+		public void Add(T1 item, T2 item2)
+		{
+			Add(new Tuple<T1, T2>(item, item2));
+		}
+	}
+}
